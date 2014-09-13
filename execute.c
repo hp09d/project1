@@ -9,7 +9,21 @@
 void execute(char* filename, char* params[], int size);
 
 int main ( int argc, char* argv[] ) {
-	execute(argv[1],argv,argc);
+	pid_t process;
+	process = fork();
+	
+	switch(process) {
+		case 0: printf("@@@ child process\n");
+			execute(argv[1],argv,argc);
+			break;
+
+		default: //parent process
+			 break;
+	}
+	
+	pid_t finished;
+	finished = waitpid(-1, (int *)NULL, 0);
+	printf("@@@ process %d completed\n", finished);
 	return 0;
 }
 
@@ -21,7 +35,7 @@ void execute(char* filename, char* params[], int size) {
 	char* buffer;
 	char** patharray;
 	int pv = 0;
-	//pid_t child;
+	pid_t child;
 
 	path = getenv("PATH");   
 	//printf( "\n%s\n", path );

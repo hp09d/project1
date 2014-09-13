@@ -5,7 +5,14 @@
 #include <unistd.h>
 #include <string.h>
 
-int main ( int argc, char *argv[] ) {
+void execute(char* filename, char* params);
+
+int main ( int argc, char* argv[] ) {
+	execute(argv[1],argv[2]);
+	return 0;
+}
+
+void execute(char* filename, char* params) {
 	//initializations
 	char slash = '/';
 	char* path; 
@@ -18,6 +25,7 @@ int main ( int argc, char *argv[] ) {
 	path = getenv("PATH");   
 	printf( "\n%s\n", path );
 	patharray = malloc((pv+1)*sizeof(*patharray));
+	patharray[pv++] = "";
    	token = strtok(path, ":");  
 
 	//read all of the paths from environment variable PATH into an array
@@ -31,18 +39,23 @@ int main ( int argc, char *argv[] ) {
 	//try each path to see if executable exists
 	int i = 0;
 	for(i = 0; i < pv; i++) {
-		asprintf(&buffer, "%s%c%s", patharray[i], slash, argv[1]);
+
+		//doesn't add extra forward slash to absolute path
+		if(i > 0) {
+			asprintf(&buffer, "%s%c%s", patharray[i], slash, filename);
+		} else {
+			asprintf(&buffer, "%s", filename);		
+		}
 
 		if(access(buffer,X_OK) == 0) {
-			char* const params[] = {buffer, argv[2]};
-			printf("@@@ File found at %s, executing '%s'\n", buffer,argv[1]);
-			execv(buffer,params);
+			char* const tp[] = {buffer, params, NULL};
+			printf("@@@ File found at %s, executing '%s'\n", buffer,filename);
+			execv(buffer,tp);
 		} else {
 			printf("### File not found at %s\n", buffer);		
 		}		
 	}
 
 	free(patharray);
-	return 0;
 }
 

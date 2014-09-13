@@ -23,6 +23,7 @@ if ((buf = (char *)malloc((size_t)size)) != NULL)
 
 printf("%s@%s:%s $ ",username,hostname,directory);
 fgets(buffer, 81, stdin);
+printf("buffer: %s",buffer);
 
 return 0;
 }

@@ -5,14 +5,15 @@
 #include <unistd.h>
 #include <string.h>
 
-void execute(char* filename, char* params);
+// Filename (argv[1]), Argv[], Argc
+void execute(char* filename, char* params[], int size);
 
 int main ( int argc, char* argv[] ) {
-	execute(argv[1],argv[2]);
+	execute(argv[1],argv,argc);
 	return 0;
 }
 
-void execute(char* filename, char* params) {
+void execute(char* filename, char* params[], int size) {
 	//initializations
 	char slash = '/';
 	char* path; 
@@ -23,7 +24,7 @@ void execute(char* filename, char* params) {
 	//pid_t child;
 
 	path = getenv("PATH");   
-	printf( "\n%s\n", path );
+	//printf( "\n%s\n", path );
 	patharray = malloc((pv+1)*sizeof(*patharray));
 	patharray[pv++] = "";
    	token = strtok(path, ":");  
@@ -31,7 +32,7 @@ void execute(char* filename, char* params) {
 	//read all of the paths from environment variable PATH into an array
 	while( token != NULL )  {
 		patharray[pv++] = token;
-		printf( " %s\n", token );
+		//printf( " %s\n", token );
 		token = strtok(NULL, ":");
 		patharray = realloc(patharray,(pv+1)*sizeof(*patharray));
   	}
@@ -48,11 +49,22 @@ void execute(char* filename, char* params) {
 		}
 
 		if(access(buffer,X_OK) == 0) {
-			char* const tp[] = {buffer, params, NULL};
+			char* tp[size+1];
+
+			// preparing execv
+			// tp acts as argv with 'size' plus one elements
+			// array is { filename, parameter 1, parameter 2,...., NULL }
+			tp[0] = filename;			
+			int j = 1;
+			for(j = 1; j<size; j++) {
+				tp[j] = params[j+1];			
+			}
+			tp[size] = NULL;
+
 			printf("@@@ File found at %s, executing '%s'\n", buffer,filename);
 			execv(buffer,tp);
 		} else {
-			printf("### File not found at %s\n", buffer);		
+			//printf("### File not found at %s\n", buffer);		
 		}		
 	}
 

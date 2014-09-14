@@ -28,15 +28,18 @@ int main()
 	printf("%s@%s:%s $ ",username,hostname,directory);
 	fgets(buffer, 81, stdin);
 	printf("buffer: %s",buffer);
-	
+
 	token = strtok(buffer, " ");
 	if(strcmp(token,"cd") == 0)
 	{printf("cd!");}
 	else if (strcmp(token,"exit") == 0)
-	{printf("exit!\n");}
+	{return 55;}
 	else if (strcmp(token,"ioacct") == 0)
 	{printf("ioacct!\n");}
 	else
-	{printf("Success!\n");}
+	{
+	path = getenv("PATH");
+	printf("\n%s\n",path);
+	}
 	return 0;
 }

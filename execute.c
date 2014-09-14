@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/wait.h>
 
 // Filename (argv[1]), Argv[], Argc
 void execute(char* filename, char* params[], int size);
@@ -32,13 +33,12 @@ void execute(char* filename, char* params[], int size) {
 	char slash = '/';
 	char* path; 
 	char* token;
-	char* buffer;
+	char buffer[256];
 	char** patharray;
 	int pv = 0;
-	pid_t child;
 
 	path = getenv("PATH");   
-	//printf( "\n%s\n", path );
+	printf( "\n%s\n", path );
 	patharray = malloc((pv+1)*sizeof(*patharray));
 	patharray[pv++] = "";
    	token = strtok(path, ":");  
@@ -46,7 +46,7 @@ void execute(char* filename, char* params[], int size) {
 	//read all of the paths from environment variable PATH into an array
 	while( token != NULL )  {
 		patharray[pv++] = token;
-		//printf( " %s\n", token );
+		printf( " %s\n", token );
 		token = strtok(NULL, ":");
 		patharray = realloc(patharray,(pv+1)*sizeof(*patharray));
   	}
@@ -57,9 +57,9 @@ void execute(char* filename, char* params[], int size) {
 
 		//doesn't add extra forward slash to absolute path
 		if(i > 0) {
-			asprintf(&buffer, "%s%c%s", patharray[i], slash, filename);
+			sprintf(buffer, "%s%c%s", patharray[i], slash, filename);
 		} else {
-			asprintf(&buffer, "%s", filename);		
+			sprintf(buffer, "%s", filename);		
 		}
 
 		if(access(buffer,X_OK) == 0) {
@@ -78,7 +78,7 @@ void execute(char* filename, char* params[], int size) {
 			printf("@@@ File found at %s, executing '%s'\n", buffer,filename);
 			execv(buffer,tp);
 		} else {
-			//printf("### File not found at %s\n", buffer);		
+			printf("### File not found at %s\n", buffer);		
 		}		
 	}
 

@@ -72,8 +72,9 @@ while(1)
 	{
 	if(command[1] == NULL)
 	{ return 0; }
-	else
+	else if(isdigit(command[1]))
 	{return atoi(command[1]);}
+	else {}
 	}
 	//Checks for ioacct
 	else if (strcmp(command[0],"ioacct") == 0)

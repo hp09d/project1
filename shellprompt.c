@@ -47,7 +47,17 @@ int main()
 	    token != NULL;
 	    token = strtok_r(NULL, " \n",  &saveptr)) {
 
-		if(strcmp(token,"exit") == 0) { exit(0); } // 'exit' to break out of loop
+		if(strcmp(token,"exit") == 0) {
+			token = strtok_r(NULL, " \n",  &saveptr);
+			if(token == NULL) {
+				//printf("### quitting with value 0\n"); 
+				return 0;
+			} else {
+				//printf("### quitting with value %i\n",atoi(token));				
+				return atoi(token);			
+			}
+			 
+		} // 'exit' to break out of loop
 
 		//printf(" token: %s\n",token);
 		argarray[args++] = token;
@@ -128,12 +138,15 @@ void execute(char* filename, char* params[], int size) {
 
 				//printf("@@@ File found at %s, executing '%s'\n", buffer,filename);
 				execv(buffer,tp);
+				printf("### execv failed!");
+				exit(1);
 			} else {
 				//printf("### File not found at %s\n", buffer);		
 			}		
 		}
 
 		free(patharray);
+		exit(1);
 	}
 
 	if(pid > 0) {

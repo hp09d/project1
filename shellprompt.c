@@ -5,6 +5,8 @@
 
 int main()
 {
+	const char *white = " \n\r\f\t\v";
+
 	char buffer[81];
 
 	char *path;
@@ -16,7 +18,12 @@ int main()
 	char *buf;
 
 	long size;
-
+	
+	int errorcheck;
+	char *command[10] = {NULL};
+	int operand;
+while(1)
+{
 	//Collect user information and store into variables for prompt
 	size = pathconf(".", _PC_PATH_MAX);
 	username = getlogin();
@@ -25,21 +32,52 @@ int main()
 	if ((buf = (char *)malloc((size_t)size)) != NULL)
 		directory = getcwd(buf, (size_t)size);
 
+
+	//prints prompt
 	printf("%s@%s:%s $ ",username,hostname,directory);
 	fgets(buffer, 81, stdin);
 	printf("buffer: %s",buffer);
 
-	token = strtok(buffer, " ");
-	if(strcmp(token,"cd") == 0)
-	{printf("cd!");}
-	else if (strcmp(token,"exit") == 0)
+	//Separates the command into different key words
+	operand = 0; 
+	token = strtok(buffer, white);
+	while(token!=NULL)
+	{			
+	command[operand] = token;
+	printf("Command %i: %s\n",operand, command[operand]);
+	operand++;
+	token = strtok(NULL,white);
+	}
+ 
+	
+	//Checks for Change Directory
+	if(strcmp(command[0],"cd") == 0)
+	{
+		//Attempts to change directory, gives an error message if failed
+
+		if(command[1] == NULL)
+		{	printf("NULL");}
+		else{
+			errorcheck = chdir(command[1]);
+
+			if(errorcheck == -1)
+			{ printf("Error: Directory Does Not Exist\n");}
+			else
+			{directory = getcwd(buf,(size_t)size);}
+		}
+	}
+	//Checks for exit
+	else if (strcmp(command[0],"exit") == 0)
 	{return 55;}
-	else if (strcmp(token,"ioacct") == 0)
+	//Checks for ioacct
+	else if (strcmp(command[0],"ioacct") == 0)
 	{printf("ioacct!\n");}
+	//Otherwise run executable
 	else
 	{
-	path = getenv("PATH");
-	printf("\n%s\n",path);
+		path = getenv("PATH");
+		printf("Running Executable\n");
 	}
+}
 	return 0;
 }

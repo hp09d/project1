@@ -77,7 +77,10 @@ while(1)
 	}
 	//Checks for ioacct
 	else if (strcmp(command[0],"ioacct") == 0)
-	{printf("ioacct!\n");}
+	{
+	//Set a flag, when the process is done have the process either jump back into this loop or 
+	//output information in that process?
+	}
 	//Otherwise run executable
 	else
 	{

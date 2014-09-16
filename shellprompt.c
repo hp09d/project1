@@ -4,13 +4,14 @@
 #include <string.h>
 #include <sys/wait.h>
 
-void execute(char* filename, char* params[], int size);
+void execute(char* filename, char* params[], int size, char* background);
 
 int main()
 {
+	const char *white = " \n\r\f\t\v";
 	char buffer[81];
 
-	//char *path;
+	//char *path; unused?
 	char *token;
 
 	char *directory;
@@ -20,8 +21,13 @@ int main()
 
 	long size;
 
+	int errorcheck;
+	char *command[10] = {NULL};
+	int operand;
 
-	while(1) { // infinite loop to return to shell after running executable
+
+	while(1) { 
+	// infinite loop to return to shell after running executable
 	//Collect user information and store into variables for prompt
 	size = pathconf(".", _PC_PATH_MAX);
 	username = getlogin();
@@ -34,58 +40,77 @@ int main()
 	fgets(buffer, 81, stdin);
 	//printf("buffer: %s",buffer);
 	
-	// main execution hand-off
-	// it's kinda messy but what can ya do
 	char** argarray; // argv
-	char* saveptr;
 	int args = 0; // argc
+	char* bgprocess;
 	
 	argarray = malloc(2*sizeof(*argarray));
 	argarray[args++] = NULL;
-
-	for(token = strtok_r(buffer, " \n",  &saveptr);
-	    token != NULL;
-	    token = strtok_r(NULL, " \n",  &saveptr)) {
-
-		if(strcmp(token,"exit") == 0) {
-			token = strtok_r(NULL, " \n",  &saveptr);
-			if(token == NULL) {
-				//printf("### quitting with value 0\n"); 
-				return 0;
-			} else {
-				//printf("### quitting with value %i\n",atoi(token));				
-				return atoi(token);			
-			}
-			 
-		} // 'exit' to break out of loop
-
-		//printf(" token: %s\n",token);
+	
+	operand = 0; 
+	token = strtok(buffer, white);
+	while(token!=NULL) {			
+		command[operand] = token;
+		printf("Command %i: %s\n",operand, command[operand]);
+		operand++;
 		argarray[args++] = token;
 		argarray = realloc(argarray,(args+2)*sizeof(*argarray));
+		token = strtok(NULL,white);
 	}
+	
 	argarray[args] = NULL;
 	
-	execute(argarray[1], argarray, args);
-
-	free(argarray);
-
-	/*
-	if(strcmp(token,"cd") == 0)
-	{printf("cd!");}
-	else if (strcmp(token,"exit") == 0)
-	{printf("exit!\n");}
-	else if (strcmp(token,"ioacct") == 0)
-	{printf("ioacct!\n");}
-	else
-	{printf("Success!\n");}
-	*/
+	if(operand > 0) { // segfault safeguard
+		bgprocess = strstr(command[operand-1],"&"); // check for ampersand
+		if(bgprocess != NULL) {
+			char* strip = command[operand-1];
+			strip[strlen(strip)-1] = '\0';
+			command[operand-1] = strip;
+		}
 	}
+
+	//Checks for Change Directory
+	if(strcmp(command[0],"cd") == 0)
+	{
+		//Attempts to change directory, gives an error message if failed
+
+		if(command[1] == NULL)
+		{	printf("NULL");}
+		else{
+			errorcheck = chdir(command[1]);
+
+			if(errorcheck == -1)
+			{ printf("Error: Directory Does Not Exist\n");}
+			else
+			{directory = getcwd(buf,(size_t)size);}
+		}
+	}
+	//Checks for exit
+	else if (strcmp(command[0],"exit") == 0)
+	{
+	if(command[1] == NULL)
+	{ return 0; }
+	else
+	{return atoi(command[1]);}
+	}
+	//Checks for ioacct
+	else if (strcmp(command[0],"ioacct") == 0)
+	{printf("ioacct!\n");}
+	//Otherwise run executable
+	else
+	{
+		printf("Running Executable\n");
+		execute(argarray[1], argarray, args, bgprocess);	
+	}
+
+	free(argarray); //deallocate dynamic array
+	} // end infinite loop
 	
 	return 0;
 }
 
 // filename, argv, argc
-void execute(char* filename, char* params[], int size) {
+void execute(char* filename, char* params[], int size, char* background) {
 	//initializations
 	char slash = '/';
 	char* path; 
@@ -152,8 +177,10 @@ void execute(char* filename, char* params[], int size) {
 	if(pid > 0) {
 		//parent process
 		pid_t finished;
-		finished = waitpid(-1, (int *)NULL, 0);
-
-		printf("### process %d completed\n",finished);
+		
+		if(background == NULL) {
+			finished = waitpid(-1, (int *)NULL, 0);
+			printf("### process %d completed\n",finished);
+		}
 	}
 }

@@ -29,6 +29,7 @@ int main()
 	while(1) { 
 	// infinite loop to return to shell after running executable
 	//Collect user information and store into variables for prompt
+
 	size = pathconf(".", _PC_PATH_MAX);
 	username = getlogin();
 	gethostname(hostname, sizeof(hostname));
@@ -38,74 +39,80 @@ int main()
 
 	printf("%s@%s:%s $ ",username,hostname,directory);
 	fgets(buffer, 81, stdin);
-	//printf("buffer: %s",buffer);
+	printf("buffer: %s",buffer);
+	if(buffer[0] != '\n') { // don't do anything if nothing is entered into prompt!
+				// fixes a segfault issue	
+
+		char** argarray; // argv
+		int args = 0; // argc
+		char* bgprocess = NULL;
 	
-	char** argarray; // argv
-	int args = 0; // argc
-	char* bgprocess;
+		argarray = malloc(2*sizeof(*argarray));
+		argarray[args++] = NULL;
 	
-	argarray = malloc(2*sizeof(*argarray));
-	argarray[args++] = NULL;
-	
-	operand = 0; 
-	token = strtok(buffer, white);
-	while(token!=NULL) {			
-		command[operand] = token;
-		printf("Command %i: %s\n",operand, command[operand]);
-		operand++;
-		argarray[args++] = token;
-		argarray = realloc(argarray,(args+2)*sizeof(*argarray));
-		token = strtok(NULL,white);
-	}
-	
-	argarray[args] = NULL;
-	
-	if(operand > 0) { // segfault safeguard
-		bgprocess = strstr(command[operand-1],"&"); // check for ampersand
-		if(bgprocess != NULL) {
-			char* strip = command[operand-1];
-			strip[strlen(strip)-1] = '\0';
-			command[operand-1] = strip;
+		operand = 0;
+		token = strtok(buffer, white);	
+		while(token!=NULL) {			
+			command[operand] = token;
+			printf("Command %i: %s\n",operand, command[operand]);
+			operand++;
+			argarray[args++] = token;
+			argarray = realloc(argarray,(args+2)*sizeof(*argarray));
+			token = strtok(NULL,white);
 		}
-	}
+	
+		argarray[args] = NULL;
+	
+		if(operand > 0) { // segfault safeguard
+			bgprocess = strstr(command[operand-1],"&"); // check for ampersand
+			if(bgprocess != NULL) {
+				char* strip = command[operand-1]; // strip ampersand if found
+				strip[strlen(strip)-1] = '\0';
+				command[operand-1] = strip;
+			}
+		}
 
-	//Checks for Change Directory
-	if(strcmp(command[0],"cd") == 0)
-	{
-		//Attempts to change directory, gives an error message if failed
+		//Checks for Change Directory
+		if(strcmp(command[0],"cd") == 0)
+		{
+			//Attempts to change directory, gives an error message if failed	
 
+			if(command[1] == NULL)
+			{	printf("NULL");}
+			else{
+				errorcheck = chdir(command[1]);	
+
+				if(errorcheck == -1)
+				{ printf("Error: Directory Does Not Exist\n");}
+				else
+				{directory = getcwd(buf,(size_t)size);}
+			}
+		}
+		//Checks for exit
+		else if (strcmp(command[0],"exit") == 0)
+		{
 		if(command[1] == NULL)
-		{	printf("NULL");}
-		else{
-			errorcheck = chdir(command[1]);
-
-			if(errorcheck == -1)
-			{ printf("Error: Directory Does Not Exist\n");}
-			else
-			{directory = getcwd(buf,(size_t)size);}
+		{ return 0; }
+		else
+		{return atoi(command[1]);}
 		}
-	}
-	//Checks for exit
-	else if (strcmp(command[0],"exit") == 0)
-	{
-	if(command[1] == NULL)
-	{ return 0; }
-	else
-	{return atoi(command[1]);}
-	}
-	//Checks for ioacct
-	else if (strcmp(command[0],"ioacct") == 0)
-	{printf("ioacct!\n");}
-	//Otherwise run executable
-	else
-	{
-		printf("Running Executable\n");
-		execute(argarray[1], argarray, args, bgprocess);	
-	}
+		//Checks for ioacct
+		else if (strcmp(command[0],"ioacct") == 0)
+		{
+		//Set a flag, when the process is done have the process either jump back into this loop or 
+		//output information in that process?
+		}
+		//Otherwise run executable
+		else
+		{
+			printf("Running Executable\n");
+			execute(argarray[1], argarray, args, bgprocess);
+		}
 
-	free(argarray); //deallocate dynamic array
+		free(argarray); //deallocate dynamic array
+	} // end newline skip
 	} // end infinite loop
-	
+
 	return 0;
 }
 
@@ -163,13 +170,11 @@ void execute(char* filename, char* params[], int size, char* background) {
 
 				//printf("@@@ File found at %s, executing '%s'\n", buffer,filename);
 				execv(buffer,tp);
-				printf("### execv failed!");
+				printf("### execv failed!\n");
 				exit(1);
-			} else {
-				//printf("### File not found at %s\n", buffer);		
-			}		
+			}	
 		}
-
+		printf("Executable not found! Killing child process.\n");
 		free(patharray);
 		exit(1);
 	}

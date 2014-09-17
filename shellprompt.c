@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 
 pid_t execute(char* filename, char* params[], int size, char* background);
+void waitfix();
 
 int main()
 {
@@ -178,6 +179,7 @@ print:
 			{
 execute:		
 				printf("Running Executable: %i\n", args);
+				waitfix();
 				procid = execute(argarray[1], argarray, args, bgprocess);
 				if(ioacctflag)
 				{goto print;}
@@ -272,5 +274,11 @@ int execute(char* filename, char* params[], int size, char* background) {
 		}
 	}
 return finished;
+}
+
+void waitfix() {
+	while(!waitpid(-1,(int*)NULL,WNOHANG) > 0) {
+		// just chill	
+	}
 }
 

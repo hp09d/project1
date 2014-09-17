@@ -14,54 +14,61 @@ int main()
 	const char *white = " \n\r\f\t\v";
 	char buffer[81];
 
-	//char *path; unused?
 	char *token;
-
 	char *directory;
 	char *username;
 	char hostname[81];
 	char *buf;
-	char *permissions;
 	long size;
-	
-	int errorcheck;
 	char *command[10] = {NULL};
+
+	int errorcheck;
 	int operand;
 	int openfile;
 	int ioacctflag = 0;
 	int stout;
-		pid_t finished;
-	
+	int stin;
+	int inflag = 0;
+
+	//Saves stout/stin state for later use
 	stout = dup(1);
+	stin = dup(0);
 
 	while(1) { 
-	// infinite loop to return to shell after running executable
-	//Collect user information and store into variables for prompt
+		// infinite loop to return to shell after running executable
+		//Collect user information and store into variables for prompt
 
-	size = pathconf(".", _PC_PATH_MAX);
-	username = getlogin();
-	gethostname(hostname, sizeof(hostname));
+		size = pathconf(".", _PC_PATH_MAX);
+		username = getlogin();
+		gethostname(hostname, sizeof(hostname));
 
-	if ((buf = (char *)malloc((size_t)size)) != NULL)
-		directory = getcwd(buf, (size_t)size);
+		if ((buf = (char *)malloc((size_t)size)) != NULL)
+			directory = getcwd(buf, (size_t)size);
 
-	printf("%s@%s:%s $ ",username,hostname,directory);
-	fgets(buffer, 81, stdin);
-	printf("buffer: %s",buffer);
-	if(buffer[0] != '\n') { // don't do anything if nothing is entered into prompt!
-				// fixes a segfault issue	
 
-		char** argarray; // argv
-		int args = 0; // argc
-		char* bgprocess = NULL;
-		argarray = malloc(2*sizeof(*argarray));
-		argarray[args++] = NULL;
-	
-		operand = 0;
-		token = strtok(buffer, white);	
-		while(token!=NULL) {			
-			 if((strcmp(token,">") == 0) | (strcmp(token,"<")==0))
-                                {
+		//print prompt
+		printf("%s@%s:%s $ ",username,hostname,directory);
+		fgets(buffer, 81, stdin);
+		
+		
+		//For testing  **DELETE
+		printf("buffer: %s",buffer);
+		if(buffer[0] != '\n') { // don't do anything if nothing is entered into prompt!
+			// fixes a segfault issue	
+
+			char** argarray; // argv
+			int args = 0; // argc
+			operand = 0;
+			char* bgprocess = NULL;
+			argarray = malloc(2*sizeof(*argarray));
+			argarray[args++] = NULL;
+
+			token = strtok(buffer, white);	
+			while(token!=NULL) {
+
+				//Checks for input output redirectiong and responds accordingly			
+				if((strcmp(token,">") == 0) | (strcmp(token,"<")==0))
+				{
 					if(strcmp(token, ">") == 0) //output
 					{ 
 						token = strtok(NULL, white);
@@ -71,95 +78,105 @@ int main()
 						close(openfile);
 					}			
 					else
-					{ printf("READ ONLY");
+					{	inflag = 1;	//Input
 						token = strtok(NULL, white);
 						command[operand] = token;
-						openfile = open(command[operand],O_RDONLY,permissions);}
-
+						openfile = open(command[operand],O_RDONLY, 0);}
+						dup2(openfile,0);
+						close(openfile);
+						token = strtok(NULL,white);
 				}
-			else {
-			command[operand] = token;
-			printf("Command %i: %s\n",operand, command[operand]);
-			operand++;
+				else {
+					command[operand] = token;
+					operand++;
+					printf("ARGS: %i\n",args);
+					if(strcmp(token,"ioacct") == 0) { 
+						// don't add ioacct to array
+					} else {
+						argarray[args++] = token;
+						argarray = realloc(argarray,(args+2)*sizeof(*argarray));
+					}
 
-			if(strcmp(token,"ioacct") == 0) { 
-				// don't add ioacct to array
-			} else {
-				argarray[args++] = token;
-				argarray = realloc(argarray,(args+2)*sizeof(*argarray));
+					printf("ArgArray %i: %s\n",operand, argarray[operand]);
+					token = strtok(NULL,white);
+				}
+
+				argarray[args] = NULL;
+
+				if(operand > 0) { // segfault safeguard
+					bgprocess = strstr(command[operand-1],"&"); // check for ampersand
+					if(bgprocess != NULL) {
+						char* strip = command[operand-1]; // strip ampersand if found
+						strip[strlen(strip)-1] = '\0';
+						command[operand-1] = strip;
+					}
+				}
+			}//End while loop
+
+
+			//Checks for Change Directory
+			if(strcmp(command[0],"cd") == 0)
+			{
+				//Attempts to change directory, gives an error message if failed	
+
+				if(command[1] == NULL)
+				{	printf("NULL");}
+				else{
+					errorcheck = chdir(command[1]);	
+
+					if(errorcheck == -1)
+					{ printf("Error: Directory Does Not Exist\n");}
+					else
+					{directory = getcwd(buf,(size_t)size);}
+				}
 			}
-
-			token = strtok(NULL,white);
-		}
-	
-		argarray[args] = NULL;
-	
-		if(operand > 0) { // segfault safeguard
-			bgprocess = strstr(command[operand-1],"&"); // check for ampersand
-			if(bgprocess != NULL) {
-				char* strip = command[operand-1]; // strip ampersand if found
-				strip[strlen(strip)-1] = '\0';
-				command[operand-1] = strip;
-			}
-		}
-
-		//Checks for Change Directory
-		if(strcmp(command[0],"cd") == 0)
-		{
-			//Attempts to change directory, gives an error message if failed	
-
-			if(command[1] == NULL)
-			{	printf("NULL");}
-			else{
-				errorcheck = chdir(command[1]);	
-
-				if(errorcheck == -1)
-				{ printf("Error: Directory Does Not Exist\n");}
+			//Checks for exit
+			else if (strcmp(command[0],"exit") == 0)
+			{
+				if(command[1] == NULL)
+				{ return 0; }
 				else
-				{directory = getcwd(buf,(size_t)size);}
+				{return atoi(command[1]);}
 			}
-		}
-		//Checks for exit
-		else if (strcmp(command[0],"exit") == 0)
-		{
-		if(command[1] == NULL)
-		{ return 0; }
-		else
-		{return atoi(command[1]);}
-		}
-		//Checks for ioacct
-		else if (strcmp(command[0],"ioacct") == 0)
-		{
+			//Checks for ioacct
+			else if (strcmp(command[0],"ioacct") == 0)
+			{
 
-		// removed for now
-		/*operand=0;
-		while(command[operand+1] != NULL)
-		{
-		argarray[operand+1] = command[operand+1];
-		printf("Argarray: %s", argarray[operand]);
-		operand++;
-		}*/
+				// removed for now
+				/*operand=0;
+				  while(command[operand+1] != NULL)
+				  {
+				  argarray[operand+1] = command[operand+1];
+				  printf("Argarray: %s", argarray[operand]);
+				  operand++;
+				  }*/
 
-		printf("success\n");
-		goto execute;  // set the flag before here, the process won't reach past this
+				goto execute;  // set the flag before here, the process won't reach past this
 
-		//Set a flag, when the process is done have the process either jump back into this loop or 
-		//output information in that process?
-		}
-		//Otherwise run executable
-		else
-		{
-execute:
-			printf("Running Executable\n");
-			execute(argarray[1], argarray, args, bgprocess);
-		}
-		free(argarray); //deallocate dynamic array
-	} // end newline skip
-	
-dup2(stout,1);
-close(stout);
-} // end infinite loop
+				//Set a flag, when the process is done have the process either jump back into this loop or 
+				//output information in that process?
+			}
+			//Otherwise run executable
+			else
+			{
+execute:		
+				printf("Running Executable: %i\n", args);
+				execute(argarray[1], argarray, args, bgprocess);
+			}
+			free(argarray); //deallocate dynamic array
 
+
+		} // end newline skip
+
+			if(inflag == 1)
+			{dup2(stin,0);
+			close(stin);
+			inflag = 0;}
+			else{//redirect output back to screen
+			dup2(stout,1);
+			close(stout);}
+
+	}//end infinite loop
 	return 0;
 }
 
@@ -172,7 +189,7 @@ void execute(char* filename, char* params[], int size, char* background) {
 	char buffer[256];
 	char** patharray;
 	int pv = 0;
-	
+
 	pid_t pid;
 	pid = fork();	
 
@@ -181,7 +198,7 @@ void execute(char* filename, char* params[], int size, char* background) {
 		//printf( "\n%s\n", path );
 		patharray = malloc((pv+1)*sizeof(*patharray));
 		patharray[pv++] = "";
-   		token = strtok(path, ":");  	
+		token = strtok(path, ":");  	
 
 		//read all of the paths from environment variable PATH into an array
 		while( token != NULL )  {
@@ -189,7 +206,7 @@ void execute(char* filename, char* params[], int size, char* background) {
 			//printf( " %s\n", token );
 			token = strtok(NULL, ":");
 			patharray = realloc(patharray,(pv+1)*sizeof(*patharray));
-  		}
+		}
 
 		//try each path to see if executable exists
 		int i = 0;
@@ -229,10 +246,11 @@ void execute(char* filename, char* params[], int size, char* background) {
 	if(pid > 0) {
 		//parent process
 		pid_t finished; 
-	
+
 		if(background == NULL) {
 			finished = waitpid(-1, (int *)NULL, 0);
 			printf("### process %d completed\n",finished);
 		}
 	}
 }
+

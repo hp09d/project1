@@ -1,0 +1,13 @@
+Running Executable: 2
+a.txt
+backups
+b.txt
+c.txt
+Makefile
+MERGE_MSG
+README
+shellprompt
+shellprompt.c
+ss
+### process 6008 completed
+hperez@linprog1.cs.fsu.edu:/home/class/hperez/proj1 $ 

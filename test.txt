@@ -1,0 +1,19 @@
+Running Executable
+a.txt
+b.txt
+c.txt
+d.txt
+execute
+execute.c
+execute.o
+ls.txt
+Makefile
+MERGE_MSG
+README
+README.orig
+shellprompt
+shellprompt.c
+shellprompt.c.orig
+ss
+test.txt
+### process 6412 completed

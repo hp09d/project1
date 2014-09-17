@@ -4,6 +4,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <sys/wait.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 void execute(char* filename, char* params[], int size, char* background);
 
@@ -19,13 +21,18 @@ int main()
 	char *username;
 	char hostname[81];
 	char *buf;
-
+	char *permissions;
 	long size;
 	
 	int errorcheck;
 	char *command[10] = {NULL};
 	int operand;
-
+	int openfile;
+	int ioacctflag = 0;
+	int stout;
+		pid_t finished;
+	
+	stout = dup(1);
 
 	while(1) { 
 	// infinite loop to return to shell after running executable
@@ -47,19 +54,37 @@ int main()
 		char** argarray; // argv
 		int args = 0; // argc
 		char* bgprocess = NULL;
-	
 		argarray = malloc(2*sizeof(*argarray));
 		argarray[args++] = NULL;
 	
 		operand = 0;
 		token = strtok(buffer, white);	
 		while(token!=NULL) {			
+			 if((strcmp(token,">") == 0) | (strcmp(token,"<")==0))
+                                {
+					if(strcmp(token, ">") == 0) //output
+					{ 
+						token = strtok(NULL, white);
+						command[operand] = token;
+						openfile = open(command[operand],O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+						dup2(openfile,1);
+						close(openfile);
+					}			
+					else
+					{ printf("READ ONLY");
+						token = strtok(NULL, white);
+						command[operand] = token;
+						openfile = open(command[operand],O_RDONLY,permissions);}
+
+				}
+			else {
 			command[operand] = token;
 			printf("Command %i: %s\n",operand, command[operand]);
-			operand++;
 			argarray[args++] = token;
 			argarray = realloc(argarray,(args+2)*sizeof(*argarray));
-			token = strtok(NULL,white);
+		}
+		operand++;	
+		token = strtok(NULL,white);
 		}
 	
 		argarray[args] = NULL;
@@ -100,6 +125,7 @@ int main()
 		//Checks for ioacct
 		else if (strcmp(command[0],"ioacct") == 0)
 		{
+		ioacctflag = 1;
 		operand=0;
 		while(command[operand+1] != NULL)
 		{
@@ -107,8 +133,11 @@ int main()
 		printf("Argarray: %s", argarray[operand]);
 		operand++;
 		}
+		args = args - 1;
 		goto execute;
-		printf("sucess");
+print:
+				
+		printf("sucess: %i",finished);
 		//Set a flag, when the process is done have the process either jump back into this loop or 
 		//output information in that process?
 		}
@@ -119,10 +148,12 @@ execute:
 			printf("Running Executable\n");
 			execute(argarray[1], argarray, args, bgprocess);
 		}
-
 		free(argarray); //deallocate dynamic array
 	} // end newline skip
-	} // end infinite loop
+	
+dup2(stout,1);
+close(stout);
+} // end infinite loop
 
 	return 0;
 }
@@ -192,8 +223,8 @@ void execute(char* filename, char* params[], int size, char* background) {
 
 	if(pid > 0) {
 		//parent process
-		pid_t finished;
-		
+		pid_t finished; 
+	
 		if(background == NULL) {
 			finished = waitpid(-1, (int *)NULL, 0);
 			printf("### process %d completed\n",finished);

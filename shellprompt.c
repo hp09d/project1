@@ -5,7 +5,6 @@
 #include <ctype.h>
 #include <sys/wait.h>
 
-//testing
 void execute(char* filename, char* params[], int size, char* background);
 
 int main()
@@ -101,12 +100,22 @@ int main()
 		//Checks for ioacct
 		else if (strcmp(command[0],"ioacct") == 0)
 		{
+		operand=0;
+		while(command[operand+1] != NULL)
+		{
+		argarray[operand] = command[operand+1];
+		printf("Argarray: %s", argarray[operand]);
+		operand++;
+		}
+		goto execute;
+		printf("sucess");
 		//Set a flag, when the process is done have the process either jump back into this loop or 
 		//output information in that process?
 		}
 		//Otherwise run executable
 		else
 		{
+execute:
 			printf("Running Executable\n");
 			execute(argarray[1], argarray, args, bgprocess);
 		}

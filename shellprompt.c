@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
-
+//testing
 int main()
 {
 	const char *white = " \n\r\f\t\v";

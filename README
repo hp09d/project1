@@ -2,7 +2,7 @@
 Authors: Hebe Perez and Ben Roche
 Date: 9/17/14
 
-This program is a  handwritten shell terminal with the most basic functions. The 
+This program is a  handwritten shell terminal with the most basic functions. The
 terminal will contain built in Utilities such as exit, cd, and ioacct. The
 terminal will also contain program executions in a separate process and pipelining.
 

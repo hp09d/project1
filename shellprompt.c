@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-void execute(char* filename, char* params[], int size, char* background);
+pid_t execute(char* filename, char* params[], int size, char* background);
 
 int main()
 {
@@ -30,6 +30,8 @@ int main()
 	int stin;
 	int inflag = 0;
 
+	pid_t procid;
+	char procfile[50];
 	//Saves stout/stin state for later use
 	stout = dup(1);
 	stin = dup(0);
@@ -142,6 +144,9 @@ int main()
 			else if (strcmp(command[0],"ioacct") == 0)
 			{
 
+				FILE *fp;
+				char ch;
+				char pid[10];
 				// removed for now
 				/*operand=0;
 				  while(command[operand+1] != NULL)
@@ -150,18 +155,32 @@ int main()
 				  printf("Argarray: %s", argarray[operand]);
 				  operand++;
 				  }*/
-
+				ioacctflag = 1;
 				goto execute;  // set the flag before here, the process won't reach past this
 
-				//Set a flag, when the process is done have the process either jump back into this loop or 
-				//output information in that process?
+print:
+				strcpy(procfile, "/proc/");
+				snprintf(pid,10,"%d",procid);
+				strcat(procfile,pid); 
+				strcat(procfile,"/io");
+				fp = fopen(procfile,"r");			
+				if(fp == NULL){
+				printf("There was an error opening the proc file: %s\n",procfile);
+				continue;}
+			while((ch = fgetc(fp)) != EOF)
+			printf("%c",ch);
+			fclose(fp);
+				
+
 			}
 			//Otherwise run executable
 			else
 			{
 execute:		
 				printf("Running Executable: %i\n", args);
-				execute(argarray[1], argarray, args, bgprocess);
+				procid = execute(argarray[1], argarray, args, bgprocess);
+				if(ioacctflag)
+				{goto print;}
 			}
 			free(argarray); //deallocate dynamic array
 
@@ -181,7 +200,7 @@ execute:
 }
 
 // filename, argv, argc
-void execute(char* filename, char* params[], int size, char* background) {
+int execute(char* filename, char* params[], int size, char* background) {
 	//initializations
 	char slash = '/';
 	char* path; 
@@ -189,6 +208,7 @@ void execute(char* filename, char* params[], int size, char* background) {
 	char buffer[256];
 	char** patharray;
 	int pv = 0;
+		pid_t finished; 
 
 	pid_t pid;
 	pid = fork();	
@@ -245,12 +265,12 @@ void execute(char* filename, char* params[], int size, char* background) {
 
 	if(pid > 0) {
 		//parent process
-		pid_t finished; 
-
+	
 		if(background == NULL) {
 			finished = waitpid(-1, (int *)NULL, 0);
 			printf("### process %d completed\n",finished);
 		}
 	}
+return finished;
 }
 

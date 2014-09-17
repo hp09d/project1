@@ -12,7 +12,7 @@ int main()
 
 	char *path;
 	char *token;
-
+	char home[50] = "/home/class/";
 	char *directory;
 	char *username;
 	char hostname[81];
@@ -56,8 +56,10 @@ while(1)
 	{
 		//Attempts to change directory, gives an error message if failed
 
-		if(command[1] == NULL)
-		{	printf("NULL");}
+		if((command[1] == NULL)|| (strcmp(command[1],"~")==0))
+		{	
+		strcat(home,username);
+		chdir(home);}
 		else{
 			errorcheck = chdir(command[1]);
 

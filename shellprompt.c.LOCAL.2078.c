@@ -80,16 +80,11 @@ int main()
 			else {
 			command[operand] = token;
 			printf("Command %i: %s\n",operand, command[operand]);
-			operand++;
-
-			if(strcmp(token,"ioacct") == 0) { 
-				// don't add ioacct to array
-			} else {
-				argarray[args++] = token;
-				argarray = realloc(argarray,(args+2)*sizeof(*argarray));
-			}
-
-			token = strtok(NULL,white);
+			argarray[args++] = token;
+			argarray = realloc(argarray,(args+2)*sizeof(*argarray));
+		}
+		operand++;	
+		token = strtok(NULL,white);
 		}
 	
 		argarray[args] = NULL;
@@ -130,19 +125,19 @@ int main()
 		//Checks for ioacct
 		else if (strcmp(command[0],"ioacct") == 0)
 		{
-
-		// removed for now
-		/*operand=0;
+		ioacctflag = 1;
+		operand=0;
 		while(command[operand+1] != NULL)
 		{
-		argarray[operand+1] = command[operand+1];
+		argarray[operand] = command[operand+1];
 		printf("Argarray: %s", argarray[operand]);
 		operand++;
-		}*/
-
-		printf("success\n");
-		goto execute;  // set the flag before here, the process won't reach past this
-
+		}
+		args = args - 1;
+		goto execute;
+print:
+				
+		printf("sucess: %i",finished);
 		//Set a flag, when the process is done have the process either jump back into this loop or 
 		//output information in that process?
 		}

@@ -1,0 +1,17 @@
+********************************************************************************
+Authors: Hebe Perez and Ben Roche
+Date: 9/17/14
+
+<<<<<<< HEAD
+This program is a  handwritten shell terminal with the most basic functions. The 
+=======
+This program is a  handwritten shell terminal with the most basic functions. The
+>>>>>>> b731eddf57757e044b84b3e0309b1c83d735f199
+terminal will contain built in Utilities such as exit, cd, and ioacct. The
+terminal will also contain program executions in a separate process and pipelining.
+
+To build the source code, run the make file by typing 'make' into the terminal command.
+This will create the executable ./shellprompt
+
+Included in file:
+shellprompt.c README Makefile ./shellprompt

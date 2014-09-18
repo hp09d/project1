@@ -71,7 +71,7 @@ int main()
 			while(token!=NULL) {
 
 				//Checks for input output redirectiong and responds accordingly			
-				if((strcmp(token,">") == 0) | (strcmp(token,"<")==0))
+				if((strcmp(token,">") == 0) | (strcmp(token,">>") == 0) | (strcmp(token,"<")==0))
 				{
 					if(strcmp(token, ">") == 0) //output
 					{ 
@@ -80,8 +80,16 @@ int main()
 						openfile = open(command[operand],O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
 						dup2(openfile,1);
 						close(openfile);
+					}
+					else if(strcmp(token, ">>") == 0) //output (append)
+					{ 
+						token = strtok(NULL, white);
+						command[operand] = token;
+						openfile = open(command[operand],O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
+						dup2(openfile,1);
+						close(openfile);
 					}			
-					else
+					else if(strcmp(token, "<") == 0) 
 					{	inflag = 1;	//Input
 						token = strtok(NULL, white);
 						command[operand] = token;
@@ -89,7 +97,7 @@ int main()
 						dup2(openfile,0);
 						close(openfile);
 						token = strtok(NULL,white);
-				}
+					}
 				else {
 					command[operand] = token;
 					operand++;

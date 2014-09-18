@@ -58,7 +58,7 @@ int main()
 		//For testing  **DELETE
 		//printf("buffer: %s",buffer);
 		if(buffer[0] != '\n') { // don't do anything if nothing is entered into prompt!
-			// fixes a segfault issue	
+					// fixes a segfault issue	
 
 			char** argarray; // argv
 			int args = 0; // argc
@@ -77,7 +77,7 @@ int main()
 					{ 
 						token = strtok(NULL, white);
 						command[operand] = token;
-						openfile = open(command[operand],O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+						openfile = open(command[operand],O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 						dup2(openfile,1);
 						close(openfile);
 					}
@@ -118,9 +118,13 @@ int main()
 					bgprocess = strstr(command[operand-1],"&"); // check for ampersand
 					if(bgprocess != NULL) {
 						char* strip = command[operand-1]; // strip ampersand if found
-						strip[strlen(strip)-1] = '\0';
-						command[operand-1] = strip;
-						flags += 1;
+						if(strip[strlen(strip)-1] != '&') {
+							printf("Error: Misplaced &\n");						
+						} else {
+							strip[strlen(strip)-1] = '\0';
+							command[operand-1] = strip;
+							flags += 1;
+						}
 					}
 				}
 			}//End while loop
@@ -246,7 +250,7 @@ int execute(char* filename, char* params[], int size, int flags) {
 				exit(1);
 			}	
 		}
-		printf("Executable not found! Killing child process.\n");
+		printf("Error: '%s' Does Not Exist\n",filename);
 		free(patharray);
 		exit(1);
 	}

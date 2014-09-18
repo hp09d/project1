@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 
 pid_t execute(char* filename, char* params[], int size, int flags);
+void pipelining(char** command, int operand, int flags);
 void waitfix();
 
 int main()
@@ -44,6 +45,12 @@ int main()
 		size = pathconf(".", _PC_PATH_MAX);
 		username = getlogin();
 		gethostname(hostname, sizeof(hostname));
+
+		// flags - 0  regular execution
+		//         1  background process
+		//         2  ioacct
+		//         4  one pipe
+		//         8  two pipes
 		flags = 0;
 
 		if ((buf = (char *)malloc((size_t)size)) != NULL)
@@ -98,6 +105,18 @@ int main()
 						close(openfile);
 						token = strtok(NULL,white);
 					}
+				else if (strcmp(token,"|") == 0) {
+					command[operand++] = token;
+					token = strtok(NULL, white);					
+					if(!(flags & 4) && !(flags & 8)) {
+						flags += 4;					
+					} else if ((flags & 4) && !(flags & 8)) {
+						flags += 8;					
+					} else {
+						printf("Error: Too Many Pipes\n");
+						goto breakout;	
+					}		
+				}
 				else {
 					command[operand] = token;
 					operand++;
@@ -127,6 +146,8 @@ int main()
 						}
 					}
 				}
+
+			//printf("\n### command[i] - %s\n", command[operand]);
 			}//End while loop
 
 
@@ -163,16 +184,23 @@ int main()
 			//Otherwise run executable
 			else
 			{
+				if((flags & 4) || (flags & 8)) {
+					waitfix();
+					pipelining(command,operand,flags);
+				} else {
+
 execute:		
 				//if(flags & 2) { printf("### ioacct\n"); }
 				//printf("Running Executable: %i\n", args);
 				waitfix();
 				execute(argarray[1], argarray, args, flags);
 			}
+			}
 			free(argarray); //deallocate dynamic array
 
 
 		} // end newline skip
+breakout:
 
 			if(inflag == 1)
 			{dup2(stin,0);
@@ -181,15 +209,12 @@ execute:
 			else{//redirect output back to screen
 			dup2(stout,1);
 			close(stout);}
-
+	
 	}//end infinite loop
 	return 0;
 }
 
 // filename, argv, argc, flags
-// flags - 0 regular execution
-//         1 background process
-//         2 ioacct
 int execute(char* filename, char* params[], int size, int flags) {
 	//initializations
 	char slash = '/';
@@ -205,6 +230,8 @@ int execute(char* filename, char* params[], int size, int flags) {
 
 	pid = fork();	
 	path = getenv("PATH"); 
+
+	//printf("### flags = %i\n",flags);
 
 	if(pid == 0) {  
 		//printf( "\n%s\n", path );
@@ -314,3 +341,77 @@ void waitfix() {
 	}
 }
 
+void pipelining(char** command, int operand, int flags) {
+	char** argv1;
+	char** argv2;
+	char** argv3;
+	int fd[2], argc1, argc2, argc3;
+	int iterator = 1, iterator2 = 0;
+	pid_t pid;
+	pipe(fd);
+
+	//if(!(flags & 8)) { pt = 1; } else { pt = 2; }
+
+	argv1 = malloc(operand*sizeof(*argv1));
+	argv2 = malloc(operand*sizeof(*argv2));
+	argv3 = malloc(operand*sizeof(*argv3));
+
+	// initializations
+	argv1[0] = "";
+	argv2[0] = "";
+	argv3[0] = "";
+	argc1 = 1;
+	argc2 = 1;
+	argc3 = 1;
+	int i;
+	for(i = 0; i < operand; i++) {
+		if(strcmp(command[i], "|") == 0) {
+			iterator = i+1;
+			iterator2 = iterator-1;
+			break;		
+		} else {
+			argv1[i+1] = command[i];	
+		}
+		argc1++;
+	}
+
+	for(i = iterator; i < operand; i++) {
+		if(strcmp(command[i], "|") == 0) {
+			iterator = i;
+			iterator2 = iterator-1;
+			break;		
+		} else {
+			argv2[i-iterator2] = command[i];	
+		}
+		argc2++;
+	}
+
+	for(i = iterator; i < operand; i++) {
+		if(strcmp(command[i], "|") == 0) {
+			iterator = i;
+			iterator2 = iterator-1;
+			break;		
+		} else {
+			argv3[i-iterator2] = command[i];	
+		}
+		argc3++;
+	}
+
+	//one pipe
+
+	pid = fork();
+	if(pid == 0) {
+		dup2(fd[1],1);
+		execute(argv1[1], argv1, argc1, 0);
+	} else {
+		close(fd[1]);
+	}
+	
+	pid = fork();
+	if (pid == 0) {
+		dup2(fd[0],0);
+		execute(argv2[1], argv2, argc2, 0);
+	}
+
+	waitpid(pid,(int*)NULL,0);
+}
